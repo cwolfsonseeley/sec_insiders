@@ -77,11 +77,14 @@ cands %>%
     left_join(cads_employers, by = "entity_id") %>%
     mutate(state_match = state == state_code,
            zip_match = zip == zipcode5,
-           street_dist = stringdist(sec_add, cad_add, method = "cosine", q = 5),
+           street_dist = stringdist(sec_add, cad_add, 
+                                    method = "cosine", 
+                                    q = 5, nthread = 1),
            company_dist = stringdist(company_name, 
                                      cads_employer_name, 
                                      method = "cosine",
-                                     q = 4)) %>% 
+                                     q = 4,
+                                     nthread = 1)) %>% 
     select(cik, entity_id, name_weight, 
            state_match, zip_match, street_dist, company_dist) %>%
     group_by(cik, entity_id) %>% 
