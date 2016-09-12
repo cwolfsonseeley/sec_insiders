@@ -18,9 +18,11 @@ summarize_transactions <- function(filing) {
         xml_text
     shares <- xml_find_all(filing, "//nonDerivativeTable//sharesOwnedFollowingTransaction/value") %>%
         xml_text %>% as.numeric
+    xml_find_all(filing, "//nonDerivativeTable//sharesOwnedFollowingTransaction/value") %>%
+        xml_text %>% as.numeric
     
-    direct <- sum(shares[di == "D"])
-    indirect <- sum(shares[di == "I"])
+    direct <- max(shares[di == "D"], na.rm = TRUE)
+    indirect <- sum(shares[di == "I"], na.rm = TRUE)
     list(direct = direct, indirect = indirect)
     
 }
@@ -65,8 +67,12 @@ read_filing <- function(platext) {
                       stringsAsFactors = FALSE)
     
     bind_rows(res, data.frame(report_date, cik = mcik, name = mname,
+                              title = title, 
                               street1 = mstreet1, street2 = mstreet2,
                               city = mcity, state = mstate, zip = mzip, 
+                              director = director, officer = officer, ten_percenter = ten_percenter,
+                              company_name = company_name, ticker = ticker, 
+                              direct_shares = direct_shares, indirect_shares = indirect_shares,
                               stringsAsFactors = FALSE))
 }
 
