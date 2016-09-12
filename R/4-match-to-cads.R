@@ -28,9 +28,8 @@ name_candidates %>%
     inner_join(processed_filings, by = "cik") %>%
     select(cik, entity_id, name_weight, 
            street1, street2, city, state, zip,
-           company_name) %>%
-    distinct %>%
-    filter(!is.na(company_name)) -> cands
+           title, company_name) %>% 
+    distinct -> cands
 
 cads_addresses <- getcdw::get_cdw("
                                   select 
@@ -49,21 +48,25 @@ cads_addresses <- getcdw::get_cdw("
                                   select entity_id from cdw.d_entity_mv where person_or_org = 'P' and record_status_code = 'A')
                                   ")
 
-cads_employers <- getcdw::get_cdw("select 
-  entity_id,
-  (select report_name from cdw.d_entity_mv 
-   where entity_id = d_bio_employment_mv.employer_entity_id) cads_employer_name
-from CDW.d_bio_employment_mv
-where entity_id in (
-  select entity_id 
-  from cdw.d_entity_mv 
-  where  
+cads_employers <- getcdw::get_cdw("
+select 
+  emp.entity_id,
+  emp.job_title,
+  nm.report_name as cads_employer_name 
+  from CDW.d_bio_employment_mv emp
+  inner join cdw.d_bio_name_mv nm on emp.employer_entity_id = nm.entity_id
+  where emp.entity_id in (
+    select entity_id 
+    from cdw.d_entity_mv 
+    where  
     person_or_org = 'P' 
-    and record_status_code = 'A')")
+    and record_status_code = 'A')
+ ")
 
 # flip employer names to lower case (address etc handled below)
 cads_employers %<>% 
-    mutate(cads_employer_name = str_trim(str_to_lower(cads_employer_name)))
+    mutate(job_title = str_trim(str_to_lower(job_title)),
+           cads_employer_name = str_trim(str_to_lower(cads_employer_name)))
 
 # now find possible matches by comparing various combinations of fields 
 # this part is sloppy and ad hoc and could really be improved. 
@@ -73,28 +76,33 @@ cands %>%
     mutate(sec_add = paste(tolower(street1.x), tolower(street2.x), sep = " ") %>% str_trim,
            cad_add = paste(tolower(care_of), tolower(company_name_1), 
                            tolower(street1.y), tolower(street2.y), sep = " ") %>% str_trim,
+           title = str_trim(str_to_lower(title)), 
            company_name = str_trim(str_to_lower(company_name))) %>%
     left_join(cads_employers, by = "entity_id") %>%
+    mutate(sec_job = paste(title, company_name),
+           cads_job = ifelse(title == "", 
+                             cads_employer_name, 
+                             paste(job_title, cads_employer_name))) %>%
     mutate(state_match = state == state_code,
            zip_match = zip == zipcode5,
            street_dist = stringdist(sec_add, cad_add, 
                                     method = "cosine", 
                                     q = 5, nthread = 1),
-           company_dist = stringdist(company_name, 
-                                     cads_employer_name, 
+           company_dist = stringdist(sec_job, 
+                                     cads_job, 
                                      method = "cosine",
                                      q = 4,
                                      nthread = 1)) %>% 
     select(cik, entity_id, name_weight, 
-           state_match, zip_match, street_dist, company_dist) %>%
+           state_match, zip_match, street_dist, company_dist) %>% 
     group_by(cik, entity_id) %>% 
-    mutate(min_address = min(street_dist),
-           min_company = min(company_dist),
+    mutate(min_address = min(street_dist, na.rm = TRUE),
+           min_company = min(company_dist, na.rm = TRUE),
            max_state_match = max(state_match),
            max_zip_match = max(zip_match)) %>%
     ungroup %>%
     filter(street_dist == min_address | company_dist == min_company |
-               zip_match) %>%
+               zip_match) %>% 
     filter(name_weight > 27 | (min_address <= .65 & max_zip_match) |
                (company_dist <= .5 & max_state_match)) %>%
     group_by(cik) %>% mutate(minstreet = min(street_dist)) %>% ungroup %>%
