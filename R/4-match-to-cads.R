@@ -71,7 +71,7 @@ cads_employers %<>%
 # now find possible matches by comparing various combinations of fields 
 # this part is sloppy and ad hoc and could really be improved. 
 library(stringdist)
-cands %>%
+cands %>% 
     left_join(cads_addresses, by = "entity_id") %>%
     mutate(sec_add = paste(tolower(street1.x), tolower(street2.x), sep = " ") %>% str_trim,
            cad_add = paste(tolower(care_of), tolower(company_name_1), 
@@ -92,7 +92,10 @@ cands %>%
                                      cads_job, 
                                      method = "cosine",
                                      q = 4,
-                                     nthread = 1)) %>% 
+                                     nthread = 1),
+           cdist2 = stringdist(company_name, cads_employer_name, 
+                               method = "cosine", q = 3, nthread = 1),
+           company_dist = pmin(company_dist, cdist2)) %>% 
     select(cik, entity_id, name_weight, 
            state_match, zip_match, street_dist, company_dist) %>% 
     group_by(cik, entity_id) %>% 
@@ -104,9 +107,9 @@ cands %>%
     filter(street_dist == min_address | company_dist == min_company |
                zip_match) %>% 
     filter(name_weight > 27 | (min_address <= .65 & max_zip_match) |
-               (company_dist <= .5 & max_state_match)) %>%
-    group_by(cik) %>% mutate(minstreet = min(street_dist)) %>% ungroup %>%
-    filter(street_dist == minstreet) %>% 
+               (company_dist <= .65 & max_state_match)) %>% 
+    #group_by(cik) %>% mutate(minstreet = min(street_dist)) %>% ungroup %>%
+    #filter(street_dist == minstreet) %>% 
     select(cik, entity_id) %>% 
     distinct -> matches
 
@@ -121,7 +124,9 @@ matches %>% group_by(cik) %>% summarise(n = n_distinct(entity_id)) %>% filter(n 
 library(lubridate)
 matches %>%
     inner_join(processed_filings, by = "cik") %>%
-    mutate(report_date = as.Date(ymd(report_date))) %>%
+    mutate(report_date = as.Date(ymd(report_date)),
+           direct_shares = pmax(direct_shares, 0),
+           indirect_shares = pmax(indirect_shares, 0)) %>%
     transmute(cik, entity_id, company_name, report_date,
               director = as.numeric(director),
               officer = as.numeric(officer),
