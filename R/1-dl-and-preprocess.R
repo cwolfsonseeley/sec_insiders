@@ -9,7 +9,7 @@ source("R/functions-download-index.R")
 # scripts will download all (potentially matching) forms for a single quarter, 
 # specify which year/quarter:
 sec_year <- 2016
-sec_qtr <- 1
+sec_qtr <- 3
 
 # download a master index file
 # idx_filename will store the name of the file that's been downloaded

@@ -31,19 +31,9 @@ read_filing <- function(platext) {
     filing <- parse_filing(platext)
     
     report_date <- parse_feature(filing, ".//periodOfReport")
-    cik <- parse_feature(filing, ".//rptOwnerCik")
-    name <- parse_feature(filing, ".//rptOwnerName")
-    title <- parse_feature(filing, ".//officerTitle")
-    street1 <- parse_feature(filing, ".//rptOwnerStreet1")
-    street2 <- parse_feature(filing, ".//rptOwnerStreet2")
-    city <- parse_feature(filing, ".//rptOwnerCity")
-    state <- parse_feature(filing, ".//rptOwnerState")
-    zip <- parse_feature(filing, ".//rptOwnerZipCode")
-    director <- parse_feature(filing, ".//isDirector")
-    officer <- parse_feature(filing, ".//isOfficer")
-    ten_percenter <- parse_feature(filing, ".//isTenPercentOwner")
     company_name <- parse_feature(filing, ".//issuerName")
     ticker <- parse_feature(filing, ".//issuerTradingSymbol")
+    reporting_owner <- parse_reporting_owner(filing)
     
     mailing_address <- get_mail_address(platext)
     
@@ -60,17 +50,15 @@ read_filing <- function(platext) {
     indirect_shares <- share_data$indirect
     
     
-    res <- data.frame(report_date, cik, name, title, street1, street2, 
-                      city, state, zip, 
-                      director, officer, ten_percenter,
+    res <- data.frame(report_date, reporting_owner,
                       company_name, ticker, direct_shares, indirect_shares,
                       stringsAsFactors = FALSE)
     
     bind_rows(res, data.frame(report_date, cik = mcik, name = mname,
-                              title = title, 
+                              title = "", 
                               street1 = mstreet1, street2 = mstreet2,
                               city = mcity, state = mstate, zip = mzip, 
-                              director = director, officer = officer, ten_percenter = ten_percenter,
+                              director = "", officer = "", ten_percenter = "",
                               company_name = company_name, ticker = ticker, 
                               direct_shares = direct_shares, indirect_shares = indirect_shares,
                               stringsAsFactors = FALSE))
