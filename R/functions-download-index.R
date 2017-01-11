@@ -1,5 +1,5 @@
 download_index <- function(year, quarter) {
-    idx_url <- paste0("ftp://ftp.sec.gov/edgar/full-index/",
+    idx_url <- paste0("https://www.sec.gov/Archives/edgar/full-index/",
                       year, "/QTR", quarter, "/master.idx")
     destdir <- paste0("data/", year)
     destfile <- paste0(destdir, "/q", quarter, "_master.idx")

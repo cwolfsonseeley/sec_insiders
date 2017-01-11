@@ -9,7 +9,7 @@ source("R/functions-download-index.R")
 # scripts will download all (potentially matching) forms for a single quarter, 
 # specify which year/quarter:
 sec_year <- 2016
-sec_qtr <- 3
+sec_qtr <- 4
 
 # download a master index file
 # idx_filename will store the name of the file that's been downloaded
@@ -22,7 +22,7 @@ if (!dir.exists(destination)) dir.create(destination, recursive = TRUE)
 # should receive a single warning, relating to the fact that the file has,
 # inexplicably, a row of dashes after the header but before hte data
 master <- readr::read_delim(idx_filename, 
-                            skip = 8, 
+                            skip = 9, 
                             delim = "|",
                             col_names = TRUE,
                             escape_backslash = FALSE)
@@ -67,7 +67,7 @@ master %>%
     mutate(sec_mi = str_trim(middle_initial), cads_mi = str_trim(str_sub(middle_name.y, 1, 1))) %>%
     filter(nchar(sec_mi) == 0 | nchar(cads_mi) == 0 | is.na(sec_mi) | is.na(cads_mi) |
                sec_mi == cads_mi) %>% 
-    mutate(file_location = paste("ftp://ftp.sec.gov/", Filename, sep = "")) %>%
+    mutate(file_location = paste("https://www.sec.gov/Archives/", Filename, sep = "")) %>%
     # group_by(CIK) %>% 
     # mutate(recent = max(`Date Filed`)) %>% 
     # ungroup %>% 
@@ -101,6 +101,7 @@ Map(downloader, dl_list$file_location, destfile = dl_list$filename)
 
 # these files define functions that parse the sec filings
 # the main one is process_filing, and then others are helpers
+source("r/parsers_reporting_owner.R")
 source("r/parsers_mail_address.R")
 source("r/parsers_main.R")
 
