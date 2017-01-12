@@ -40,7 +40,20 @@ where entity_id in (select entity_id from cdw.d_entity_mv where person_or_org = 
 cads_names %<>%
     mutate_each(funs = funs(tolower), first_name:middle_name)
 
-
+# research has begun storing CIK when it is verified it's the right person,
+# should use this data when attempting to match (since they are known to be correct)
+verified_cik <- getcdw::get_cdw(
+    "
+select 
+  entity_id as entity_id_v, 
+  other_id as cads_cik 
+from 
+  cdw.d_ids_base 
+where 
+  ids_type_code = 'SEC'
+    "
+)
+    
 # make a list of all files to download, by
 # looking for filings by people whose names match cads names
 # looking only for forms 3, 4, and 5.
@@ -75,6 +88,15 @@ master %>%
     select(file_location) %>%
     distinct -> dl_list
 
+## add on the known cik's in case any were missed:
+dl_list_extra <- master %>% 
+    filter(`Form Type` %in% c('3', '4', '5')) %>% 
+    filter(CIK %in% verified_cik$cads_cik) %>%
+    mutate(file_location = paste("https://www.sec.gov/Archives/", Filename, sep = "")) %>%
+    select(file_location) %>% distinct
+
+dl_list <- dplyr::union(dl_list, dl_list_extra)
+
 # this sets up a data frame with the necessary info for downloading all 
 # files (ie, download file url, and destination path)
 dl_list %<>%
@@ -88,10 +110,18 @@ dl_list %<>%
 # include small delays between file downloads to avoid bombarding the server
 # with all of these (thousands of) requests
 # note that this part of the script is best run overnight
+# also: using .5 second delay b/c sec.gov does not specify what the limit
+# should be! https://www.sec.gov/privacy.htm#security says:
+## QUOTE ##
+# If a single IP Address exceeds a threshold request per second rate, further 
+# requests from that IP Address will be limited for a brief period.)
+## ENDQUOTE ##
+# but what is the threshold? it doesn't say. their API limit is 2/second, though.
+# so here i'll use the same limit and cross my fingers
 downloader <- function(file, destfile) {
     if (file.exists(destfile)) return()
     download.file(file, destfile, quiet = TRUE)
-    Sys.sleep(.2)
+    Sys.sleep(.5)
 }
 
 # download all files to the proper directory

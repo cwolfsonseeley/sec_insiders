@@ -113,9 +113,20 @@ cands %>%
     select(cik, entity_id) %>% 
     distinct -> matches
 
-# quick check of cik's that got matched to multiple entity id's
-# shouldn't be too many, and hopefully over time we'll sort them out. 
-matches %>% group_by(cik) %>% summarise(n = n_distinct(entity_id)) %>% filter(n > 1)
+# cik's that are already verified (are in CADS) should be part of matches, and 
+# supercede any entity_id candidates already in matches
+
+matches$verified <- FALSE
+verified_cik <- verified_cik %>%
+    rename(cik = cads_cik, entity_id = entity_id_v) %>% mutate(verified = TRUE)
+
+matches <- bind_rows(matches, verified_cik) %>%
+    group_by(cik) %>%
+    filter(verified == max(verified)) %>%
+    select(-verified) %>% ungroup
+
+# sanity check:
+dplyr::setdiff(verified_cik[, c("entity_id", "cik"), drop = FALSE], matches)
 
 # append stock prices using the ticker-price from 1-dl-and-preprocess.R
 # also just keep the most recent filing for each filer-company pair,
