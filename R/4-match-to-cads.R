@@ -32,7 +32,7 @@ name_candidates %>%
     distinct -> cands
 
 cads_addresses <- getcdw::get_cdw("
-                                  select 
+                                  select distinct
                                   entity_id,
                                   care_of,
                                   company_name_1,
@@ -49,7 +49,7 @@ cads_addresses <- getcdw::get_cdw("
                                   ")
 
 cads_employers <- getcdw::get_cdw("
-select 
+select distinct
   emp.entity_id,
   emp.job_title,
   nm.report_name as cads_employer_name 
@@ -135,7 +135,8 @@ dplyr::setdiff(verified_cik[, c("entity_id", "cik"), drop = FALSE], matches)
 library(lubridate)
 matches %>%
     inner_join(processed_filings, by = "cik") %>%
-    mutate(report_date = as.Date(ymd(report_date)),
+    mutate(report_date = str_sub(report_date, 1, 10),
+           report_date = as.Date(ymd(report_date)),
            direct_shares = pmax(direct_shares, 0),
            indirect_shares = pmax(indirect_shares, 0)) %>%
     transmute(cik, entity_id, company_name, report_date,
