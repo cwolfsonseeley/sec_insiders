@@ -8,8 +8,8 @@ source("R/functions-download-index.R")
 
 # scripts will download all (potentially matching) forms for a single quarter, 
 # specify which year/quarter:
-sec_year <- 2016
-sec_qtr <- 4
+sec_year <- 2017
+sec_qtr <- 2
 
 # download a master index file
 # idx_filename will store the name of the file that's been downloaded
@@ -33,12 +33,16 @@ master <- master[-1,]
 # going to run the list of filer names from the master index against
 # the known names of people in CADS to look for potential matches,
 # so only download filings that may end up being matches
-cads_names <- getcdw::get_cdw("select distinct entity_id, first_name, last_name, middle_name from cdw.d_bio_name_mv
+cads_names <- getcdw::get_cdw("select distinct entity_id, 
+lower(first_name) as first_name, 
+lower(last_name) as last_name, 
+lower(middle_name) as middle_name 
+from cdw.d_bio_name_mv
 where entity_id in (select entity_id from cdw.d_entity_mv where person_or_org = 'P' and record_status_code = 'A')")
 
 # prep for matching by converting to lowercase
-cads_names %<>%
-    mutate_each(funs = funs(tolower), first_name:middle_name)
+# cads_names %<>%
+#     mutate_each(funs = funs(tolower), first_name:middle_name)
 
 # research has begun storing CIK when it is verified it's the right person,
 # should use this data when attempting to match (since they are known to be correct)
@@ -121,7 +125,7 @@ dl_list %<>%
 downloader <- function(file, destfile) {
     if (file.exists(destfile)) return()
     download.file(file, destfile, quiet = TRUE)
-    Sys.sleep(.5)
+    Sys.sleep(.6)
 }
 
 # download all files to the proper directory

@@ -118,7 +118,10 @@ cands %>%
 
 matches$verified <- FALSE
 verified_cik <- verified_cik %>%
-    rename(cik = cads_cik, entity_id = entity_id_v) %>% mutate(verified = TRUE)
+    rename(cik = cads_cik, 
+           entity_id = entity_id_v) %>% 
+    mutate(cik = str_pad(cik, width = 10, pad = "0"),
+           verified = TRUE)
 
 matches <- bind_rows(matches, verified_cik) %>%
     group_by(cik) %>%
@@ -182,7 +185,7 @@ context <- getcdw::get_cdw("
 
 matched_financials %>%
     group_by(cik, entity_id, ticker, report_date) %>% 
-    summarise_each(funs(max(., na.rm = TRUE))) %>%
+    summarise_all(funs(max(., na.rm = TRUE))) %>%
     ungroup %>%
     inner_join(context, by = "entity_id") %>%
     write.csv("details.csv", row.names = FALSE)
