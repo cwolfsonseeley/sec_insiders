@@ -185,8 +185,10 @@ context <- getcdw::get_cdw("
 
 matched_financials %>%
     group_by(cik, entity_id, ticker, report_date) %>% 
-    summarise_all(funs(max(., na.rm = TRUE))) %>%
+    summarise_all(.funs = funs(max(., na.rm = TRUE))) %>%
     ungroup %>%
+    mutate_at(.vars = vars(director:price),
+              .funs = funs(ifelse(. < 0, NA, .))) %>%
     inner_join(context, by = "entity_id") %>%
     write.csv("details.csv", row.names = FALSE)
 
