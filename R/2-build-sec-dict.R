@@ -13,10 +13,9 @@ if (!file.exists(techspec_dest))
 # now build name frequency table for sec filing data
 # using a cik dictinary for full set of filer names
 
-# download a dictionary of cik - company name. i'm not sure
-# how often this changes or how often to update it
-# i found the url at: http://quant.stackexchange.com/a/9327
-cik_url <- "https://www.sec.gov/edgar/NYU/cik.coleft.c"
+# download a dictionary of cik - company name. 
+#cik_url <- "https://www.sec.gov/edgar/NYU/cik.coleft.c"
+cik_url <- "https://www.sec.gov/Archives/edgar/cik-lookup-data.txt"
 
 # will overwrite the dictionary if it already exists
 download.file(cik_url, "reference/cik_dictionary.c")
