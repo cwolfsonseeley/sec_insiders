@@ -157,7 +157,8 @@ matches %>%
     mutate(maxshares = max(total_shares)) %>% 
     ungroup %>% filter(total_shares == maxshares) %>%
     left_join(prices, by = c("ticker" = "symbol")) %>%
-    select(cik:total_shares, price = Last) %>%
+    select(cik:total_shares, price = close) %>%
+    #select(cik:total_shares) %>% mutate(price = NA) %>%
     mutate(price = as.numeric(price),
            total_value = price * total_shares) %>%
     distinct -> matched_financials

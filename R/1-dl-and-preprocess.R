@@ -8,8 +8,8 @@ source("R/functions-download-index.R")
 
 # scripts will download all (potentially matching) forms for a single quarter, 
 # specify which year/quarter:
-sec_year <- 2017
-sec_qtr <- 2
+sec_year <- 2018
+sec_qtr <- 1
 
 # download a master index file
 # idx_filename will store the name of the file that's been downloaded
@@ -148,14 +148,19 @@ processed_filings %>% select(cik, name) %>% distinct
 
 # add most recent close prices by stock ticker,
 # will be used to estimate total $$ value of holdings from filings
-library(quantmod)
-prices <- processed_filings %>% 
+library(tidyquant)
+library(purrr)
+valid_tickers <- processed_filings %>% 
     select(ticker) %>% 
     filter(!is.na(ticker)) %>% 
     mutate(ticker = str_match(ticker, "^(.+:\\s*)?([A-Za-z]+)")[,3]) %>%
     distinct %>%
-    "$"(ticker) %>%
-    paste(collapse = ";") %>%
-    getQuote
+    "$"(ticker)
 
-prices$symbol <- rownames(prices)
+prices <- tq_get(valid_tickers)
+
+prices <- prices %>% 
+    group_by(symbol) %>% 
+    filter(date == max(date)) %>% 
+    select(symbol, close) %>% 
+    ungroup
