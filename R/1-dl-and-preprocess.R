@@ -1,3 +1,43 @@
+## prelim: check any research-verified ciks that are not in the rdata database,
+## update sec_cik_dict and/or sec_blacklist as necessary
+getcdw::get_cdw("select 
+entity_id, 
+to_number(other_id) as cik 
+from cdw.d_ids_base 
+where ids_type_code = 'SEC'
+and not regexp_like(other_id, '[^0-9]')
+minus
+(select
+    entity_id,
+    cik
+    from rdata.sec_cik_dict
+    minus
+    select
+    entity_id,
+    cik
+    from rdata.sec_blacklist)")
+
+# update sec_cik_dict:
+data_frame(entity_id = 261021, cik = 1184736) %>% 
+    ROracle::dbWriteTable(
+        conn = getcdw::connect("URELUAT_DEVEL"), name = "SEC_CIK_DICT", 
+        value = ., 
+        schema = 'RDATA',
+        overwrite = FALSE, append = TRUE)
+ROracle::dbCommit(getcdw::connect("URELUAT_DEVEL"))
+
+# update sec_blacklist
+data_frame(entity_id = 452155, cik = 1580690) %>% 
+    ROracle::dbWriteTable(
+        conn = getcdw::connect("URELUAT_DEVEL"), name = "SEC_BLACKLIST", 
+        value = ., 
+        schema = 'RDATA',
+        overwrite = FALSE, append = TRUE)
+ROracle::dbCommit(getcdw::connect("URELUAT_DEVEL"))
+
+# just in case
+getcdw::reset_cdw()
+
 library(dplyr)
 library(magrittr)
 library(stringr)
@@ -9,7 +49,7 @@ source("R/functions-download-index.R")
 # scripts will download all (potentially matching) forms for a single quarter, 
 # specify which year/quarter:
 sec_year <- 2018
-sec_qtr <- 1
+sec_qtr <- 2
 
 # download a master index file
 # idx_filename will store the name of the file that's been downloaded
@@ -46,17 +86,16 @@ where entity_id in (select entity_id from cdw.d_entity_mv where person_or_org = 
 
 # research has begun storing CIK when it is verified it's the right person,
 # should use this data when attempting to match (since they are known to be correct)
-verified_cik <- getcdw::get_cdw(
-    "
-select 
-  entity_id as entity_id_v, 
-  other_id as cads_cik 
-from 
-  cdw.d_ids_base 
-where 
-  ids_type_code = 'SEC'
-    "
-)
+verified_cik <- getcdw::get_cdw("
+select
+  entity_id as entity_id_v,
+  cik as cads_cik
+from rdata.sec_cik_dict
+minus
+select
+  entity_id as entity_id_v,
+  cik as cads_cik
+from rdata.sec_blacklist")
     
 # make a list of all files to download, by
 # looking for filings by people whose names match cads names
@@ -125,7 +164,7 @@ dl_list %<>%
 downloader <- function(file, destfile) {
     if (file.exists(destfile)) return()
     download.file(file, destfile, quiet = TRUE)
-    Sys.sleep(.6)
+    Sys.sleep(1)
 }
 
 # download all files to the proper directory
@@ -145,22 +184,3 @@ list.files(destination, full.names = TRUE) %>%
 processed_filings <- bind_rows(processed_filings)
 processed_filings %<>% tbl_df
 processed_filings %>% select(cik, name) %>% distinct
-
-# add most recent close prices by stock ticker,
-# will be used to estimate total $$ value of holdings from filings
-library(tidyquant)
-library(purrr)
-valid_tickers <- processed_filings %>% 
-    select(ticker) %>% 
-    filter(!is.na(ticker)) %>% 
-    mutate(ticker = str_match(ticker, "^(.+:\\s*)?([A-Za-z]+)")[,3]) %>%
-    distinct %>%
-    "$"(ticker)
-
-prices <- tq_get(valid_tickers)
-
-prices <- prices %>% 
-    group_by(symbol) %>% 
-    filter(date == max(date)) %>% 
-    select(symbol, close) %>% 
-    ungroup

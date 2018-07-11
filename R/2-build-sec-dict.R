@@ -14,7 +14,6 @@ if (!file.exists(techspec_dest))
 # using a cik dictinary for full set of filer names
 
 # download a dictionary of cik - company name. 
-#cik_url <- "https://www.sec.gov/edgar/NYU/cik.coleft.c"
 cik_url <- "https://www.sec.gov/Archives/edgar/cik-lookup-data.txt"
 
 # will overwrite the dictionary if it already exists
