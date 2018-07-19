@@ -341,11 +341,14 @@ ROracle::dbCommit(cdw)
 cik_entity_dictionary <- getcdw::get_cdw("select * from rdata.sec_cik_dict minus select * from rdata.sec_blacklist")
 cik_entity_dictionary %>% group_by(entity_id) %>% filter(n() > 1) %>% arrange(entity_id)
 
+cik_blacklist <- getcdw::get_cdw("select * from rdata.sec_blacklist")
+
 new_dict_entries <- dplyr::setdiff(
     matches %>% 
         mutate(cik = as.integer(cik)) %>% 
         select(entity_id, cik),
-    cik_entity_dictionary)
+    cik_entity_dictionary) %>% 
+    anti_join(cik_blacklist, by = c("entity_id", "cik"))
 
 res <- ROracle::dbWriteTable(
     cdw, "SEC_CIK_DICT", new_dict_entries, 
