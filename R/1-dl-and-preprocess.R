@@ -17,23 +17,23 @@ minus
     cik
     from rdata.sec_blacklist)")
 
-# update sec_cik_dict:
-data_frame(entity_id = 261021, cik = 1184736) %>% 
-    ROracle::dbWriteTable(
-        conn = getcdw::connect("URELUAT_DEVEL"), name = "SEC_CIK_DICT", 
-        value = ., 
-        schema = 'RDATA',
-        overwrite = FALSE, append = TRUE)
-ROracle::dbCommit(getcdw::connect("URELUAT_DEVEL"))
+# update sec_cik_dict if necessary:
+# data_frame(entity_id = 261021, cik = 1184736) %>% 
+#     ROracle::dbWriteTable(
+#         conn = getcdw::connect("URELUAT_DEVEL"), name = "SEC_CIK_DICT", 
+#         value = ., 
+#         schema = 'RDATA',
+#         overwrite = FALSE, append = TRUE)
+# ROracle::dbCommit(getcdw::connect("URELUAT_DEVEL"))
 
-# update sec_blacklist
-data_frame(entity_id = 452155, cik = 1580690) %>% 
-    ROracle::dbWriteTable(
-        conn = getcdw::connect("URELUAT_DEVEL"), name = "SEC_BLACKLIST", 
-        value = ., 
-        schema = 'RDATA',
-        overwrite = FALSE, append = TRUE)
-ROracle::dbCommit(getcdw::connect("URELUAT_DEVEL"))
+# update sec_blacklist if necessary
+# data_frame(entity_id = 452155, cik = 1580690) %>% 
+#     ROracle::dbWriteTable(
+#         conn = getcdw::connect("URELUAT_DEVEL"), name = "SEC_BLACKLIST", 
+#         value = ., 
+#         schema = 'RDATA',
+#         overwrite = FALSE, append = TRUE)
+# ROracle::dbCommit(getcdw::connect("URELUAT_DEVEL"))
 
 # just in case
 getcdw::reset_cdw()
