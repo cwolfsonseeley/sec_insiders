@@ -276,8 +276,12 @@ res <- ROracle::dbWriteTable(
 ROracle::dbCommit(cdw)
 
 getcdw::get_cdw("
-                insert into rdata.sec_hdr
-                select * from sec_hdr_stage
+insert into rdata.sec_hdr
+select stg.* from sec_hdr_stage stg
+                left join rdata.sec_hdr hdr
+                on stg.cik = hdr.cik
+                and stg.accession = hdr.accession
+                where hdr.accession is null  
                 ", dsn = "URELUAT_DEVEL")
 ROracle::dbCommit(cdw)
 
@@ -303,9 +307,13 @@ res <- ROracle::dbWriteTable(
 ROracle::dbCommit(cdw)
 
 getcdw::get_cdw("
-                insert into rdata.sec_nonderiv
-                select * from sec_nonderiv_stage
-                ", dsn = "URELUAT_DEVEL")
+insert into rdata.sec_nonderiv
+select stg.* from sec_nonderiv_stage stg
+left join rdata.sec_nonderiv nd
+  on stg.accession = nd.accession
+  and stg.xsequence = nd.xsequence
+where nd.accession is null  
+", dsn = "URELUAT_DEVEL")
 ROracle::dbCommit(cdw)
 
 ######
@@ -332,9 +340,13 @@ res <- ROracle::dbWriteTable(
 ROracle::dbCommit(cdw)
 
 getcdw::get_cdw("
-                insert into rdata.sec_deriv
-                select * from sec_deriv_stage
-                ", dsn = "URELUAT_DEVEL")
+insert into rdata.sec_deriv
+select stg.* from sec_deriv_stage stg
+left join rdata.sec_deriv dv
+  on stg.accession = dv.accession
+  and stg.xsequence = dv.xsequence
+where dv.accession is null
+", dsn = "URELUAT_DEVEL")
 ROracle::dbCommit(cdw)
 
 ## also add unverified cik dictionary
@@ -366,7 +378,11 @@ res <- ROracle::dbWriteTable(
 ROracle::dbCommit(cdw)
 
 getcdw::get_cdw("
-                insert into rdata.sec_footnote
-                select * from rdata.sec_footnote_stage
-                ", dsn = "URELUAT_DEVEL")
+insert into rdata.sec_footnote
+select stg.* from sec_footnote_stage stg
+                left join rdata.sec_footnote fn
+                on stg.accession = fn.accession
+                and stg.footnote_id = fn.footnote_id
+                where fn.accession is null
+", dsn = "URELUAT_DEVEL")
 ROracle::dbCommit(cdw)
